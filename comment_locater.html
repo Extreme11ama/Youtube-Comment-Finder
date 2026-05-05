@@ -21,7 +21,7 @@
                 return null;
             }
 
-            async function fetchApi(apiKey, pageToken) {
+            async function fetchPage(apiKey, pageToken) {
                 let url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&videoId=${videoId}&maxResults=100&key=${apiKey}`;
                 if (pageToken) url += `&pageToken=${pageToken}`;
                 const r = await fetch(url);
@@ -36,6 +36,88 @@
                 if (!r.ok) return [];
                 const data = await r.json();
                 return (data.items || []).map(item => ({ snippet: item.snippet, isReply: true }));
+            }
+
+            function matchesQuery(text, author, kws, usernameOnly) {
+                const ltext = text.toLowerCase();
+                const lauthor = author.toLowerCase();
+                return kws.some(kw => {
+                    if (!kw) return false;
+                    if (usernameOnly) return lauthor.includes(kw);
+                    return ltext.includes(kw) || lauthor.includes(kw);
+                });
+            }
+
+            async function processPage(apiKey, pageToken) {
+                const data = await fetchPage(apiKey, pageToken);
+                const items = data.items || [];
+                let matches = [];
+
+                for (const thread of items) {
+                    totalScanned++;
+                    const topSnippet = thread.snippet?.topLevelComment?.snippet;
+                    if (!topSnippet) continue;
+
+                    if (matchesQuery(topSnippet.textDisplay || '', topSnippet.authorDisplayName || '', keywords, usernameOnly)) {
+                    matches.push({ snippet: topSnippet, isReply: false });
+                    }
+                    if (includeReplies) {
+                        const replyCount = thread.snippet?.totalReplyCount || 0;
+                        const cachedReplies = thread.replies?.comments || [];
+
+                        let replies = [];
+                        if (replyCount > 0 && cachedReplies.length < replyCount) {
+                            replies = await fetchReplies(thread.id, apiKey);
+                        } else {
+                            replies = cachedReplies.map(c => ({ snippet: c.snippet, isReply: true }));
+                        }
+
+                        replies.forEach(({ snippet }) => {
+                            totalScanned++;
+                            if (matchesQuery(snippet.textDisplay || '', snippet.authorDisplayName || '', keywords, usernameOnly)) {
+                                matches.push({ snippet, isReply: true });
+                            }
+                        });
+                    }
+            
+                }
+
+            }
+
+            async function startSearch() {
+                const apiKey = getApiKey();
+                if (!apiKey) {
+                    document.getElementById('api-details').open = true;
+                    setStatus('<span class="err">⚠ Enter your API key above first.</span>');
+                    return;
+                }
+
+                const urlInput = document.getElementById('video-url').value;
+                const queryInput = document.getElementById('query').value.trim();
+                videoId = extractVideoId(urlInput);
+
+                if (!videoId) { setStatus('<span class="err">⚠ Couldn\'t extract a video ID from that URL.</span>'); return; }
+                if (!queryInput) { setStatus('<span class="err">⚠ Enter at least one keyword.</span>'); return; }
+
+                keywords = queryInput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+                usernameOnly = document.getElementById('username-only').checked;
+                includeReplies = document.getElementById('include-replies').checked;
+
+                nextPageToken = null;
+                totalScanned = 0;
+                totalFound = 0;
+                document.getElementById('results').innerHTML = '';
+                document.getElementById('more-wrap').style.display = 'none';
+                document.getElementById('search-btn').disabled = true;
+                setProgress(5);
+
+                try {
+                    await loadMore(true);
+                } catch(e) {
+                    setStatus(`<span class="err">⚠ ${escHtml(e.message)}</span>`);
+                    setProgress(-1);
+                }
+                document.getElementById('search-btn').disabled = false;
             }
 
         </script>
