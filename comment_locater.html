@@ -56,6 +56,7 @@
             let totalScanned = 0;
             let totalFound = 0;
             const MAX_PER_BATCH = 5;
+            const commentCache = {};
 
             function extractVideoId(input) {
                 input = input.trim();
@@ -103,11 +104,14 @@
                 const data = await fetchPage(apiKey, pageToken);
                 const items = data.items || [];
                 let matches = [];
+                let allComments = [];
 
                 for (const thread of items) {
                     totalScanned++;
                     const topSnippet = thread.snippet?.topLevelComment?.snippet;
                     if (!topSnippet) continue;
+
+                    allComments.push({ snippet: topSnippet, isReply: false });
 
                     if (matchesQuery(topSnippet.textDisplay || '', topSnippet.authorDisplayName || '', keywords, usernameOnly)) {
                     matches.push({ snippet: topSnippet, isReply: false });
@@ -125,13 +129,15 @@
 
                         replies.forEach(({ snippet }) => {
                             totalScanned++;
+                            allComments.push({ snippet, isReply: true });
                             if (matchesQuery(snippet.textDisplay || '', snippet.authorDisplayName || '', keywords, usernameOnly)) {
                                 matches.push({ snippet, isReply: true });
                             }
                         });
                     }
-            
                 }
+                addToCache(videoId, allComments);
+
                 return { matches, nextPageToken: data.nextPageToken || null };
 
             }
@@ -162,6 +168,21 @@
                 document.getElementById('more-wrap').style.display = 'none';
                 document.getElementById('search-btn').disabled = true;
                 setProgress(5);
+
+                const cachedResults = searchCache(videoId, keywords, usernameOnly, includeReplies);
+
+                if (cachedResults !== null) {
+                    totalFound = cachedResults.length;
+                    totalScanned = commentCache[videoId].comments.length;
+                    if (cachedResults.length > 0) {
+                        appendResults(cachedResults);
+                    } else {
+                        document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
+                    }
+                    setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span> cached comments - instant ⚡`);
+                    document.getElementById('search-btn').disabled = false;
+                    return;  
+                }
 
                 try {
                     await loadMore(true);
@@ -291,6 +312,28 @@
                 if (pct < 0) { wrap.style.display = 'none'; return; }
                 wrap.style.display = 'block';
                 bar.style.width = Math.min(100, pct) + '%';
+            }
+
+            function searchCache(videoId, kws, usernameOnly, includeReplies) {
+                const cached = commentCache[videoId];
+                if (!cached) return null;
+
+                return cached.comments.filter(({ snippet, isReply }) => {
+                    if (isReply && !includeReplies) return false;
+                    return matchesQuery(
+                    snippet.textDisplay || '',
+                    snippet.authorDisplayName || '',
+                    kws,
+                    usernameOnly
+                    );
+                });
+            }
+
+            function addToCache(videoId, newComments) {
+                if (!commentCache[videoId]) {
+                    commentCache[videoId] = { comments: [], fetchedAt: Date.now() };
+                }
+                commentCache[videoId].comments.push(...newComments);
             }
 
 
