@@ -5,11 +5,58 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="color-scheme" content="light dark">
 
-        <title>This is the title of the webpage!</title>
+        <title>Youtube Comment Locater</title>
         <style></style>
     </head>
     <body>
+        <div class="app">
+
+            <!-- API Key -->
+            <details id="api-details">
+                <summary id="api-summary">YouTube API key - click to configure</summary>
+                <label>API Key</label>
+                <input type="password" id="api-key" placeholder="AIzaSy..."/>
+            </details>
+
+            <!-- Search inputs -->
+            <input type="text" id="video-url" placeholder="YouTube URL or video ID"/>
+            <input type="text" id="query" placeholder="keywords, @username"/>
+
+            <!-- Toggles -->
+            <label>
+                <input type="checkbox" id="include-replies" checked/> Include replies
+            </label>
+            <label>
+                <input type="checkbox" id="username-only"/> Username only
+            </label>
+
+            <!-- Search button -->
+            <button id="search-btn" onclick="startSearch()">Search</button>
+
+            <!-- Progress + status -->
+            <div id="progress-wrap"><div id="progress-bar"></div></div>
+            <div id="status"></div>
+
+            <!-- Results -->
+            <div id="results"></div>
+
+            <!-- Load more -->
+            <div id="more-wrap" style="display:none">
+            <button onclick="loadMore()">Load more →</button>
+        </div>
+
+        </div>
         <script>
+            let nextPageToken = null;
+            let videoId = null;
+            let keywords = [];
+            let usernameOnly = false;
+            let includeReplies = false;
+            let searching = false;
+            let totalScanned = 0;
+            let totalFound = 0;
+            const MAX_PER_BATCH = 5;
+
             function extractVideoId(input) {
                 input = input.trim();
                 let m;
@@ -19,6 +66,10 @@
                 if ((m = input.match(/\/shorts\/([a-zA-Z0-9_-]{11})/))) return m[1];
                 if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
                 return null;
+            }
+
+            function getApiKey() {
+                return document.getElementById('api-key').value.trim();
             }
 
             async function fetchPage(apiKey, pageToken) {
@@ -81,6 +132,7 @@
                     }
             
                 }
+                return { matches, nextPageToken: data.nextPageToken || null };
 
             }
 
@@ -119,6 +171,129 @@
                 }
                 document.getElementById('search-btn').disabled = false;
             }
+
+            async function loadMore(isFirst) {
+                const apiKey = getApiKey();
+                document.getElementById('more-wrap').style.display = 'none';
+                setProgress(10);
+
+                let batchFound = 0;
+                let pagesLoaded = 0;
+
+                while (pagesLoaded < MAX_PER_BATCH) {
+                    setStatus(`Scanning comments… <span class="count">${totalScanned.toLocaleString()}</span> checked, <span class="count">${totalFound.toLocaleString()}</span> found`);
+                    setProgress(Math.min(90, 10 + pagesLoaded * 15));
+
+                    const { matches, nextPageToken: npt } = await processPage(apiKey, nextPageToken);
+                    nextPageToken = npt;
+                    pagesLoaded++;
+
+                    if (matches.length > 0) {
+                        appendResults(matches);
+                        totalFound += matches.length;
+                        batchFound += matches.length;
+                    }
+
+                    if (!nextPageToken) break;
+                }
+
+                setProgress(-1);
+
+                if (totalFound === 0 && !nextPageToken) {
+                    document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
+                    setStatus(`Scanned <span class="count">${totalScanned.toLocaleString()}</span> comments — no matches found.`);
+                } else {
+                    const more = nextPageToken ? ' — more available' : ' — end of comments';
+                    setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches found in <span class="count">${totalScanned.toLocaleString()}</span> comments scanned${more}.`);
+                    if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
+                }
+            }
+
+            function appendResults(matches) {
+                const container = document.getElementById('results');
+                matches.forEach(m => {
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly));
+                });
+            }
+
+            function renderComment(snippet, isReply, kws, usernameOnly) {
+                const author = snippet.authorDisplayName || '';
+                const text = snippet.textDisplay || snippet.textOriginal || '';
+                const likes = snippet.likeCount || 0;
+                const date = snippet.publishedAt || '';
+                const authorUrl = snippet.authorChannelUrl || '#';
+
+                const authorMatch = kws.some(kw => author.toLowerCase().includes(kw));
+                const textMatch = !usernameOnly && kws.some(kw => text.toLowerCase().includes(kw));
+
+                const videoLink = `https://www.youtube.com/watch?v=${videoId}`;
+
+                return `
+                <div class="result-item ${isReply ? 'is-reply' : ''}">
+                <div class="result-meta">
+                    <a href="${escHtml(authorUrl)}" target="_blank" class="author ${authorMatch ? 'author-match' : ''}">${escHtml(author)}</a>
+                    ${isReply ? '<span class="badge badge-reply">reply</span>' : ''}
+                    ${authorMatch ? '<span class="badge badge-match">username match</span>' : ''}
+                    <span class="date">${fmtDate(date)}</span>
+                </div>
+                <div class="comment-text">${highlight(text, kws)}</div>
+                <div class="result-footer">
+                    <span class="likes">▲ ${Number(likes).toLocaleString()}</span>
+                    <a class="link-out" href="${videoLink}" target="_blank">view on YouTube ↗</a>
+                </div>
+                </div>`;
+            }
+
+            function escHtml(s) {
+                return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+            function highlight(text, kws) {
+                let out = escHtml(text);
+                kws.forEach(kw => {
+                    if (!kw) return;
+                    const re = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                    out = out.replace(re, '<mark>$1</mark>');
+                });
+                return out;
+            }
+
+            function fmtDate(iso) {
+                try {
+                    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                } catch(e) {
+                    return '';
+                }
+            }
+
+            document.getElementById('query').addEventListener('keydown', e => {
+                if (e.key === 'Enter') startSearch();
+            });
+
+            document.getElementById('video-url').addEventListener('keydown', e => {
+                if (e.key === 'Enter') startSearch();
+            });
+
+            const savedKey = sessionStorage.getItem('yt_api_key');
+            if (savedKey) document.getElementById('api-key').value = savedKey;
+
+            document.getElementById('api-key').addEventListener('input', e => {
+                sessionStorage.setItem('yt_api_key', e.target.value);
+            });
+
+            function setStatus(msg) {
+                document.getElementById('status').innerHTML = msg;
+            }
+
+            function setProgress(pct) {
+                const wrap = document.getElementById('progress-wrap');
+                const bar = document.getElementById('progress-bar');
+                if (pct < 0) { wrap.style.display = 'none'; return; }
+                wrap.style.display = 'block';
+                bar.style.width = Math.min(100, pct) + '%';
+            }
+
+
 
         </script>
     </body>
