@@ -57,6 +57,8 @@
             let totalFound = 0;
             const MAX_PER_BATCH = 5;
             const commentCache = {};
+            const cacheComplete = {};
+            let totalCommentCount = null;
 
             function extractVideoId(input) {
                 input = input.trim();
@@ -137,6 +139,8 @@
                     }
                 }
                 addToCache(videoId, allComments);
+                commentCache[videoId].lastPageToken = data.nextPageToken || null;
+                //totalScanned = commentCache[videoId].comments.length; not important line
 
                 return { matches, nextPageToken: data.nextPageToken || null };
 
@@ -169,17 +173,27 @@
                 document.getElementById('search-btn').disabled = true;
                 setProgress(5);
 
+                //totalCommentCount = await fetchTotalCommentCount(apiKey);
+
                 const cachedResults = searchCache(videoId, keywords, usernameOnly, includeReplies);
 
                 if (cachedResults !== null) {
                     totalFound = cachedResults.length;
                     totalScanned = commentCache[videoId].comments.length;
+                    nextPageToken = commentCache[videoId].lastPageToken;
                     if (cachedResults.length > 0) {
                         appendResults(cachedResults);
                     } else {
                         document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
                     }
-                    setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span> cached comments - instant ⚡`);
+                    //setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span> cached comments - instant ⚡`);
+                    if (cacheComplete[videoId]) {
+                        setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span> cached comments (fully scanned) ⚡`);
+                    } else {
+                        setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span> cached comments — more unseen ⚡`);
+                        document.getElementById('more-wrap').style.display = 'block';  // show the button
+                    }
+
                     document.getElementById('search-btn').disabled = false;
                     return;  
                 }
@@ -215,17 +229,22 @@
                         batchFound += matches.length;
                     }
 
-                    if (!nextPageToken) break;
+                    if (!nextPageToken) {
+                        cacheComplete[videoId] = true;
+                        break;
+                    }
                 }
 
                 setProgress(-1);
 
                 if (totalFound === 0 && !nextPageToken) {
                     document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
-                    setStatus(`Scanned <span class="count">${totalScanned.toLocaleString()}</span> comments — no matches found.`);
+                    setStatus(`Scanned <span class="count">${totalScanned.toLocaleString()}</span> comments - no matches found.`);
                 } else {
                     const more = nextPageToken ? ' — more available' : ' — end of comments';
                     setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches found in <span class="count">${totalScanned.toLocaleString()}</span> comments scanned${more}.`);
+                    //const ofTotal = totalCommentCount ? ` of ~${Number(totalCommentCount).toLocaleString()}` : '';
+                    //setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span>${ofTotal} comments scanned${more}.`);
                     if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
                 }
             }
@@ -260,7 +279,7 @@
                 <div class="comment-text">${highlight(text, kws)}</div>
                 <div class="result-footer">
                     <span class="likes">▲ ${Number(likes).toLocaleString()}</span>
-                    <a class="link-out" href="${videoLink}" target="_blank">view on YouTube ↗</a>
+                    
                 </div>
                 </div>`;
             }
@@ -331,11 +350,18 @@
 
             function addToCache(videoId, newComments) {
                 if (!commentCache[videoId]) {
-                    commentCache[videoId] = { comments: [], fetchedAt: Date.now() };
+                    commentCache[videoId] = { comments: [], fetchedAt: Date.now(), lastPageToken: null };
                 }
                 commentCache[videoId].comments.push(...newComments);
             }
 
+            async function fetchTotalCommentCount(apiKey) {
+                const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&key=${apiKey}`;
+                const r = await fetch(url);
+                if (!r.ok) return null;
+                const data = await r.json();
+                return data.items?.[0]?.statistics?.commentCount || null;
+            }
 
 
         </script>
