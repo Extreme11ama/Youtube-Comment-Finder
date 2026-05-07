@@ -275,6 +275,8 @@
             async function loadMore(isFirst) {
                 const apiKey = getApiKey();
                 document.getElementById('more-wrap').style.display = 'none';
+                const empty = document.getElementById('results').querySelector('.empty');
+                if (empty) empty.remove();
                 setProgress(10);
 
                 let batchFound = 0;
@@ -311,7 +313,12 @@
                     setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches found in <span class="count">${totalScanned.toLocaleString()}</span> comments scanned${more}.`);
                     //const ofTotal = totalCommentCount ? ` of ~${Number(totalCommentCount).toLocaleString()}` : '';
                     //setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span>${ofTotal} comments scanned${more}.`);
-                    if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
+                    //if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
+                }
+                
+                if (nextPageToken) {
+                    showResultsSection();
+                    document.getElementById('more-wrap').style.display = 'block';
                 }
             }
 
@@ -355,7 +362,7 @@
             }
 
             function highlight(text, kws) {
-                let out = escHtml(text);
+                let out = text;
                 kws.forEach(kw => {
                     if (!kw) return;
                     const re = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');

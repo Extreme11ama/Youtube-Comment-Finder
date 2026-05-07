@@ -432,7 +432,7 @@ input::placeholder { color: var(--hint); }
     gap: 4px;
 }
 
-.likes::before { content: '▲'; font-size: 8px; }
+/*.likes::before { content: '▲'; font-size: 8px; }*/
 
 .yt-link {
     font-family: var(--mono);
