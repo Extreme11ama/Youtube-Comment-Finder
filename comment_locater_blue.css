@@ -1,3 +1,38 @@
+/*<!-- API Key -->
+            <details id="api-details">
+                <summary id="api-summary">YouTube API key - click to configure</summary>
+                <label>API Key</label>
+                <input type="password" id="api-key" placeholder="AIzaSy..."/>
+            </details>
+
+            <!-- Search inputs -->
+            <input type="text" id="video-url" placeholder="YouTube URL or video ID"/>
+            <input type="text" id="query" placeholder="keywords, @username"/>
+
+            <!-- Toggles -->
+            <label>
+                <input type="checkbox" id="include-replies" checked/> Include replies
+            </label>
+            <label>
+                <input type="checkbox" id="username-only"/> Username only
+            </label>
+
+            <!-- Search button -->
+            <button id="search-btn" onclick="startSearch()">Search</button>
+
+            <!-- Progress + status -->
+            <div id="progress-wrap"><div id="progress-bar"></div></div>
+            <div id="status"></div>
+
+            <!-- Results -->
+            <div id="results"></div>
+
+            <!-- Load more -->
+            <div id="more-wrap" style="display:none">
+            <button onclick="loadMore()">Load more →</button>
+*/
+
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;

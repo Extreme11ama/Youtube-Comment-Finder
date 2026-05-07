@@ -6,44 +6,87 @@
         <meta name="color-scheme" content="light dark">
 
         <title>Youtube Comment Locater</title>
-        <link rel="stylesheet" href="comment_locater_red.css">
+        <link rel="stylesheet" href="comment_locater_red.css"> 
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
         <style></style>
     </head>
     <body>
-        <div class="app">
+        <div class="wrap">            
 
-            <!-- API Key -->
-            <details id="api-details">
-                <summary id="api-summary">YouTube API key - click to configure</summary>
-                <label>API Key</label>
-                <input type="password" id="api-key" placeholder="AIzaSy..."/>
-            </details>
+            <div class="header-text">
+                <h1>yt-comment-locater</h1>
+                <p>searches comments <span>+ replies</span> · username aware</p>
+            </div>
 
-            <!-- Search inputs -->
-            <input type="text" id="video-url" placeholder="YouTube URL or video ID"/>
-            <input type="text" id="query" placeholder="keywords, @username"/>
-
-            <!-- Toggles -->
-            <label>
-                <input type="checkbox" id="include-replies" checked/> Include replies
-            </label>
-            <label>
-                <input type="checkbox" id="username-only"/> Username only
-            </label>
-
-            <!-- Search button -->
-            <button id="search-btn" onclick="startSearch()">Search</button>
-
-            <!-- Progress + status -->
-            <div id="progress-wrap"><div id="progress-bar"></div></div>
-            <div id="status"></div>
-
+            <div class="api-block">
+                <div class="api-toggle" id="api-toggle" onclick="toggleApi()">
+                <div class="api-toggle-left">
+                    <div class="api-dot" id="api-dot"></div>
+                    <span class="api-label" id="api-label">youtube data api v3 key - click to configure</span>
+                </div>
+                <span class="api-chevron" id="api-chevron">▼</span>
+                </div>
+                <div class="api-inner" id="api-inner">
+                <div class="field" style="margin-top:14px">
+                    <label class="field-label">api key</label>
+                    <input type="password" id="api-key" placeholder="AIzaSy..."/>
+                </div>
+                <p class="api-note">
+                    get a free key at <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a>
+                    → enable youtube data api v3 → create credentials → api key.<br>
+                    key is only stored in sessionStorage and never leaves your browser.
+                </p>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="search-card">
+                <div class="field">
+                <label class="field-label">video url or id</label>
+                <input type="text" id="video-url" placeholder="https://youtube.com/watch?v=... or bare video ID"/>
+                </div>
+                <div class="input-row">
+                <div class="field">
+                    <label class="field-label">search keywords</label>
+                    <input type="text" id="query" placeholder="keyword, @username, comma-separated"/>
+                </div>
+                <button class="btn-search" id="search-btn" onclick="startSearch()">search →</button>
+                </div>
+            
+                <div class="toggles">
+                <label class="toggle-pill">
+                    <input type="checkbox" id="include-replies" checked/>
+                    <span class="pill-check"></span>
+                    include replies
+                </label>
+                <label class="toggle-pill">
+                    <input type="checkbox" id="username-only"/>
+                    <span class="pill-check"></span>
+                    username only
+                </label>
+                </div>
+            </div>
+            
+            <!-- Progress & status -->
+            <div class="progress-track" id="progress-wrap">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div class="status-bar" id="status"></div>
+            
             <!-- Results -->
-            <div id="results"></div>
+            <div id="results-wrap" style="display:none">
+                <div class="divider">
+                <div class="divider-line"></div>
+                <span class="divider-label" id="results-label">results</span>
+                <div class="divider-line"></div>
+                </div>
+                <div id="results"></div>
+                <div class="load-more-wrap" id="more-wrap">
+                <button class="btn-more" onclick="loadMore()">load more comments →</button>
+                </div>
+            </div>
 
-            <!-- Load more -->
-            <div id="more-wrap" style="display:none">
-            <button onclick="loadMore()">Load more →</button>
         </div>
 
         </div>
@@ -60,6 +103,26 @@
             const commentCache = {};
             const cacheComplete = {};
             let totalCommentCount = null;
+
+            let apiOpen = false;
+            function toggleApi() {
+                apiOpen = !apiOpen;
+                document.getElementById('api-inner').classList.toggle('open', apiOpen);
+                document.getElementById('api-chevron').style.transform = apiOpen ? 'rotate(180deg)' : '';
+            }
+            
+            function updateApiDot() {
+                const key = document.getElementById('api-key').value.trim();
+                const dot = document.getElementById('api-dot');
+                const label = document.getElementById('api-label');
+                if (key) {
+                dot.classList.add('active');
+                label.textContent = 'youtube data api v3 key - configured ✓';
+                } else {
+                dot.classList.remove('active');
+                label.textContent = 'youtube data api v3 key - click to configure';
+                }
+            }
 
             function extractVideoId(input) {
                 input = input.trim();
@@ -150,7 +213,7 @@
             async function startSearch() {
                 const apiKey = getApiKey();
                 if (!apiKey) {
-                    document.getElementById('api-details').open = true;
+                    if (!apiOpen) toggleApi();
                     setStatus('<span class="err">⚠ Enter your API key above first.</span>');
                     return;
                 }
@@ -182,6 +245,7 @@
                     totalFound = cachedResults.length;
                     totalScanned = commentCache[videoId].comments.length;
                     nextPageToken = commentCache[videoId].lastPageToken;
+                    showResultsSection();
                     if (cachedResults.length > 0) {
                         appendResults(cachedResults);
                     } else {
@@ -225,6 +289,7 @@
                     pagesLoaded++;
 
                     if (matches.length > 0) {
+                        showResultsSection();
                         appendResults(matches);
                         totalFound += matches.length;
                         batchFound += matches.length;
@@ -316,10 +381,14 @@
             });
 
             const savedKey = sessionStorage.getItem('yt_api_key');
-            if (savedKey) document.getElementById('api-key').value = savedKey;
+            if (savedKey) {
+                document.getElementById('api-key').value = savedKey;
+                updateApiDot();
+            }
 
             document.getElementById('api-key').addEventListener('input', e => {
                 sessionStorage.setItem('yt_api_key', e.target.value);
+                updateApiDot();
             });
 
             function setStatus(msg) {
@@ -362,6 +431,10 @@
                 if (!r.ok) return null;
                 const data = await r.json();
                 return data.items?.[0]?.statistics?.commentCount || null;
+            }
+
+            function showResultsSection() {
+                document.getElementById('results-wrap').style.display = 'block';
             }
 
 
