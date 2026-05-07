@@ -1,0 +1,174 @@
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.app {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+/* ===== Panels ===== 
+wrap stuff around cards, <!-- API + inputs -->
+Then close it after your inputs/toggles/button.
+wrap it around results too. */
+.card {
+    background: #1e293b;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* ===== Inputs ===== */
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    outline: none;
+}
+
+input:focus {
+    border-color: #3b82f6;
+}
+
+/* ===== Toggles ===== */
+label {
+    display: block;
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+/* ===== Button ===== */
+button {
+    background: #3b82f6;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== Progress ===== */
+#progress-wrap {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #3b82f6;
+    transition: width 0.3s ease;
+}
+
+/* ===== Status ===== */
+#status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* ===== Results ===== */
+.result-item {
+    background: #020617;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #1e293b;
+}
+
+.result-item.is-reply {
+    margin-left: 20px;
+    border-left: 3px solid #3b82f6;
+}
+
+/* ===== Meta ===== */
+.result-meta {
+    font-size: 13px;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.author {
+    font-weight: 600;
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+.author-match {
+    color: #22c55e;
+}
+
+/* ===== Badges ===== */
+.badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #334155;
+}
+
+.badge-reply {
+    background: #1d4ed8;
+}
+
+.badge-match {
+    background: #16a34a;
+}
+
+/* ===== Comment text ===== */
+.comment-text {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+mark {
+    background: #facc15;
+    color: black;
+    border-radius: 3px;
+}
+
+/* ===== Footer ===== */
+.result-footer {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* ===== Empty state ===== */
+.empty {
+    text-align: center;
+    padding: 20px;
+    color: #64748b;
+}
+
+/* ===== Load more ===== */
+#more-wrap {
+    text-align: center;
+    margin-top: 15px;
+}
