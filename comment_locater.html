@@ -188,10 +188,13 @@
                     const topSnippet = thread.snippet?.topLevelComment?.snippet;
                     if (!topSnippet) continue;
 
-                    allComments.push({ id: thread.snippet.topLevelComment.id,snippet: topSnippet, isReply: false });
+                    allComments.push({ 
+                        id: thread.snippet.topLevelComment.id,
+                        snippet: topSnippet, isReply: false, 
+                        replyCount: thread.snippet.totalReplyCount || 0 });
 
                     if (matchesQuery(topSnippet.textDisplay || '', topSnippet.authorDisplayName || '', keywords, usernameOnly)) {
-                    matches.push({ snippet: topSnippet, isReply: false });
+                    matches.push({ snippet: topSnippet, isReply: false, replyCount: thread.snippet.totalReplyCount || 0 });
                     }
                     if (includeReplies) {
                         const replyCount = thread.snippet?.totalReplyCount || 0;
@@ -206,7 +209,7 @@
 
                         replies.forEach(({ id,snippet }) => {
                             totalScanned++;
-                            allComments.push({ id,snippet, isReply: true });
+                            allComments.push({ id,snippet, isReply: true, replyCount: 0 });
                             if (matchesQuery(snippet.textDisplay || '', snippet.authorDisplayName || '', keywords, usernameOnly)) {
                                 matches.push({ id,snippet, isReply: true });
                             }
@@ -261,8 +264,15 @@
                     showResultsSection();
                     if (cachedResults.length > 0) {
                         //appendResults(cachedResults);
-                        const rendered = appendResults(cachedResults);
-                        totalFound = rendered;
+                        /*const rendered = appendResults(cachedResults);
+                        totalFound = rendered;*/
+                        cachedResults.forEach(m => {
+                            if (m.id && renderedIds.has(m.id)) return;
+                            if (m.id) renderedIds.add(m.id);
+                            allMatches.push(m);
+                        });
+                        totalFound = allMatches.length;
+                        renderAllMatches();
                     } else {
                         document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
                     }
@@ -333,6 +343,7 @@
                     //setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span>${ofTotal} comments scanned${more}.`);
                     //if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
                 }
+                renderAllMatches();
                 
                 if (nextPageToken) {
                     showResultsSection();
@@ -350,7 +361,7 @@
                 matches.forEach(m => {
                     if (m.id && renderedIds.has(m.id)) { skipped++; return; }
                     if (m.id) renderedIds.add(m.id);
-                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly));
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount));
                     allMatches.push(m);
                     rendered++;
                 });
@@ -359,7 +370,7 @@
                 return rendered;
             }
 
-            function renderComment(snippet, isReply, kws, usernameOnly) {
+            function renderComment(snippet, isReply, kws, usernameOnly, replyCount) {
                 const author = snippet.authorDisplayName || '';
                 const text = snippet.textDisplay || snippet.textOriginal || '';
                 const likes = snippet.likeCount || 0;
@@ -382,6 +393,7 @@
                 <div class="comment-text">${highlight(text, kws)}</div>
                 <div class="result-footer">
                     <span class="likes"><span>&#128077;</span> ${Number(likes).toLocaleString()}</span>
+                    ${!isReply && replyCount > 0 ? `<span class="likes">💬 ${replyCount.toLocaleString()}</span>` : ''}
                     
                 </div>
                 </div>`;
@@ -480,14 +492,14 @@
                 const sorted = [...allMatches].sort((a, b) => {
                     if (sortBy === 'time') return new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt);
                     if (sortBy === 'likes') return (b.snippet.likeCount || 0) - (a.snippet.likeCount || 0);
-                    if (sortBy === 'replies') return (b.snippet.totalReplyCount || 0) - (a.snippet.totalReplyCount || 0);
+                    if (sortBy === 'replies') return (b.replyCount || 0) - (a.replyCount || 0);
                     return 0; // relevance — original order
                 });
 
                 const container = document.getElementById('results');
                 container.innerHTML = '';
                 sorted.forEach(m => {
-                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly));
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount));
                 });
             }
 
