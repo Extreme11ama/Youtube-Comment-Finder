@@ -66,6 +66,15 @@
                     username only
                 </label>
                 </div>
+                <div class="sort-row" style="margin-top:14px; padding-top:14px; border-top: 1px solid var(--border);">
+                    <label class="field-label">sort results by</label>
+                    <select id="sort-by" onchange="renderAllMatches()">
+                        <option value="relevance">relevance</option>
+                        <option value="time">newest first</option>
+                        <option value="likes">most liked</option>
+                        <option value="replies">most replies</option>
+                    </select>
+                </div>
             </div>
             
             <!-- Progress & status -->
@@ -104,6 +113,7 @@
             const cacheComplete = {};
             let totalCommentCount = null;
             const renderedIds = new Set();
+            let allMatches = [];
 
             let apiOpen = false;
             function toggleApi() {
@@ -234,6 +244,7 @@
                 totalScanned = 0;
                 totalFound = 0;
                 renderedIds.clear();
+                allMatches = [];
                 document.getElementById('results').innerHTML = '';
                 document.getElementById('more-wrap').style.display = 'none';
                 document.getElementById('search-btn').disabled = true;
@@ -340,9 +351,11 @@
                     if (m.id && renderedIds.has(m.id)) { skipped++; return; }
                     if (m.id) renderedIds.add(m.id);
                     container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly));
+                    allMatches.push(m);
                     rendered++;
                 });
                 console.log(`appendResults: ${matches.length} incoming, ${skipped} skipped as duplicates, ${matches.length - skipped} rendered`);
+                //renderAllMatches();
                 return rendered;
             }
 
@@ -459,6 +472,23 @@
 
             function showResultsSection() {
                 document.getElementById('results-wrap').style.display = 'block';
+            }
+
+            function renderAllMatches() {
+                const sortBy = document.getElementById('sort-by').value;
+                
+                const sorted = [...allMatches].sort((a, b) => {
+                    if (sortBy === 'time') return new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt);
+                    if (sortBy === 'likes') return (b.snippet.likeCount || 0) - (a.snippet.likeCount || 0);
+                    if (sortBy === 'replies') return (b.snippet.totalReplyCount || 0) - (a.snippet.totalReplyCount || 0);
+                    return 0; // relevance — original order
+                });
+
+                const container = document.getElementById('results');
+                container.innerHTML = '';
+                sorted.forEach(m => {
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly));
+                });
             }
 
 
