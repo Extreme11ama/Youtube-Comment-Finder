@@ -161,6 +161,7 @@
 
             async function fetchPage(pageToken) {
                 let url = `/.netlify/functions/youtube?endpoint=commentThreads&part=snippet,replies&videoId=${videoId}&maxResults=100`;
+                if (pageToken) url += `&pageToken=${pageToken}`;
                 const r = await fetch(url);
                 const data = await r.json();
                 if (!r.ok) throw new Error(data.error?.message || 'API error');
