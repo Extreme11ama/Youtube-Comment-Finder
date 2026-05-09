@@ -159,17 +159,16 @@
                 return document.getElementById('api-key').value.trim();
             }
 
-            async function fetchPage(apiKey, pageToken) {
-                let url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&videoId=${videoId}&maxResults=100&key=${apiKey}`;
-                if (pageToken) url += `&pageToken=${pageToken}`;
+            async function fetchPage(pageToken) {
+                let url = `/.netlify/functions/youtube?endpoint=commentThreads&part=snippet,replies&videoId=${videoId}&maxResults=100`;
                 const r = await fetch(url);
                 const data = await r.json();
                 if (!r.ok) throw new Error(data.error?.message || 'API error');
                 return data;
             }
 
-            async function fetchReplies(parentId, apiKey) {
-                const url = `https://www.googleapis.com/youtube/v3/comments?part=snippet&parentId=${parentId}&maxResults=100&key=${apiKey}`;
+            async function fetchReplies(parentId) {
+                const url = `/.netlify/functions/youtube?endpoint=comments&part=snippet&parentId=${parentId}&maxResults=100`;
                 const r = await fetch(url);
                 if (!r.ok) return [];
                 const data = await r.json();
@@ -186,8 +185,8 @@
                 });
             }
 
-            async function processPage(apiKey, pageToken) {
-                const data = await fetchPage(apiKey, pageToken);
+            async function processPage(pageToken) {
+                const data = await fetchPage(pageToken);
                 const items = data.items || [];
                 let matches = [];
                 let allComments = [];
@@ -211,7 +210,7 @@
 
                         let replies = [];
                         if (replyCount > 0 && cachedReplies.length < replyCount) {
-                            replies = await fetchReplies(thread.id, apiKey);
+                            replies = await fetchReplies(thread.id);
                         } else {
                             replies = cachedReplies.map(c => ({ id: c.id,snippet: c.snippet, isReply: true }));
                         }
@@ -313,7 +312,6 @@
             }
 
             async function loadMore(isFirst) {
-                const apiKey = getApiKey();
                 document.getElementById('more-wrap').style.display = 'none';
                 const empty = document.getElementById('results').querySelector('.empty');
                 if (empty) empty.remove();
@@ -326,7 +324,7 @@
                     setStatus(`Scanning comments… <span class="count">${totalScanned.toLocaleString()}</span> checked, <span class="count">${totalFound.toLocaleString()}</span> found`);
                     setProgress(Math.min(90, 10 + pagesLoaded * 15));
 
-                    const { matches, nextPageToken: npt } = await processPage(apiKey, nextPageToken);
+                    const { matches, nextPageToken: npt } = await processPage(nextPageToken);
                     nextPageToken = npt;
                     pagesLoaded++;
 
@@ -495,7 +493,7 @@
             }
 
             async function fetchTotalCommentCount(apiKey) {
-                const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&key=${apiKey}`;
+                const url = `/.netlify/functions/youtube?endpoint=videos&part=statistics&id=${videoId}`;
                 const r = await fetch(url);
                 if (!r.ok) return null;
                 const data = await r.json();
