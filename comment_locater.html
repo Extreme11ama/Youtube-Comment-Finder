@@ -55,18 +55,27 @@
                 </div>
             
                 <div class="toggles">
-                <label class="toggle-pill">
-                    <input type="checkbox" id="include-replies" checked/>
-                    <span class="pill-check"></span>
-                    include replies
-                </label>
-                <label class="toggle-pill">
-                    <input type="checkbox" id="username-only"/>
-                    <span class="pill-check"></span>
-                    username only
-                </label>
+                    <label class="toggle-pill">
+                        <input type="checkbox" id="include-replies" checked/>
+                        <span class="pill-check"></span>
+                        include replies
+                    </label>
+                    <label class="toggle-pill">
+                        <input type="checkbox" id="username-only"/>
+                        <span class="pill-check"></span>
+                        username only
+                    </label>
+                    <div class="sort-inline">
+                        <label class="field-label" style="margin-bottom:0; white-space:nowrap; align-self:center;">sort by</label>
+                        <select id="sort-by" onchange="renderAllMatches()">
+                            <option value="relevance">relevance</option>
+                            <option value="time">newest first</option>
+                            <option value="likes">most liked</option>
+                            <option value="replies">most replies</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="sort-row" style="margin-top:14px; padding-top:14px; border-top: 1px solid var(--border);">
+                <!-- <div class="sort-row" style="margin-top:14px; padding-top:14px; border-top: 1px solid var(--border);">
                     <label class="field-label">sort results by</label>
                     <select id="sort-by" onchange="renderAllMatches()">
                         <option value="relevance">relevance</option>
@@ -74,7 +83,7 @@
                         <option value="likes">most liked</option>
                         <option value="replies">most replies</option>
                     </select>
-                </div>
+                </div> -->
             </div>
             
             <!-- Progress & status -->
@@ -266,13 +275,19 @@
                         //appendResults(cachedResults);
                         /*const rendered = appendResults(cachedResults);
                         totalFound = rendered;*/
-                        cachedResults.forEach(m => {
-                            if (m.id && renderedIds.has(m.id)) return;
-                            if (m.id) renderedIds.add(m.id);
-                            allMatches.push(m);
-                        });
-                        totalFound = allMatches.length;
-                        renderAllMatches();
+                        const sortBy = document.getElementById('sort-by').value;
+                        if (sortBy === 'relevance') {
+                            const rendered = appendResults(cachedResults);
+                            totalFound = rendered;
+                        } else {
+                            cachedResults.forEach(m => {
+                                if (m.id && renderedIds.has(m.id)) return;
+                                if (m.id) renderedIds.add(m.id);
+                                allMatches.push(m);
+                            });
+                            totalFound = allMatches.length;
+                            renderAllMatches();
+                        }
                     } else {
                         document.getElementById('results').innerHTML = '<div class="empty">No comments matched your search.</div>';
                     }
@@ -343,7 +358,12 @@
                     //setStatus(`<span class="count">${totalFound.toLocaleString()}</span> matches in <span class="count">${totalScanned.toLocaleString()}</span>${ofTotal} comments scanned${more}.`);
                     //if (nextPageToken) document.getElementById('more-wrap').style.display = 'block';
                 }
-                renderAllMatches();
+                const sortBy = document.getElementById('sort-by').value;
+                if (sortBy === 'relevance') {
+                    // already appended directly, nothing to do
+                } else {
+                    renderAllMatches();
+                }
                 
                 if (nextPageToken) {
                     showResultsSection();

@@ -237,6 +237,7 @@ input::placeholder { color: var(--hint); }
     margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--border);
+    /* align-items: center; new */
 }
 
 .toggle-pill {
@@ -508,3 +509,38 @@ select {
 }
 
 select:focus { border-color: var(--red); }
+/*remove this and sort inline later*/
+.sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.sort-inline select {
+    width: auto;
+}
+
+@media (max-width: 600px) {
+    .input-row {
+        flex-direction: column;
+    }
+
+    .btn-search {
+        width: 100%;
+    }
+
+    .toggles {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sort-inline {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sort-inline select {
+        width: 100%;
+    }
+}
