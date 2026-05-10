@@ -376,7 +376,7 @@
                 matches.forEach(m => {
                     if (m.id && renderedIds.has(m.id)) { skipped++; return; }
                     if (m.id) renderedIds.add(m.id);
-                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount));
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount, m.id));
                     allMatches.push(m);
                     rendered++;
                 });
@@ -385,7 +385,7 @@
                 return rendered;
             }
 
-            function renderComment(snippet, isReply, kws, usernameOnly, replyCount) {
+            function renderComment(snippet, isReply, kws, usernameOnly, replyCount, threadId) {
                 const author = snippet.authorDisplayName || '';
                 const text = snippet.textDisplay || snippet.textOriginal || '';
                 const likes = snippet.likeCount || 0;
@@ -411,6 +411,13 @@
                     ${!isReply && replyCount > 0 ? `<span class="likes">💬 ${replyCount.toLocaleString()}</span>` : ''}
                     
                 </div>
+                ${!isReply && replyCount > 0 ? `
+                <div class="replies-section" id="replies-${escHtml(snippet.authorDisplayName)}-${escHtml(date)}">
+                    <button class="btn-replies" onclick="toggleReplies(this, '${threadId}')">
+                        show ${replyCount} replies ▾
+                    </button>
+                    <div class="replies-list" style="display:none"></div>
+                </div>` : ''}
                 </div>`;
             }
 
@@ -514,8 +521,35 @@
                 const container = document.getElementById('results');
                 container.innerHTML = '';
                 sorted.forEach(m => {
-                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount));
+                    container.insertAdjacentHTML('beforeend', renderComment(m.snippet, m.isReply, keywords, usernameOnly, m.replyCount, m.id));
                 });
+            }
+
+            async function toggleReplies(btn, threadId) {
+                const section = btn.parentElement;
+                const list = section.querySelector('.replies-list');
+                
+                if (list.style.display !== 'none') {
+                    list.style.display = 'none';
+                    btn.textContent = btn.textContent.replace('▴', '▾').replace('hide', 'show');
+                    return;
+                }
+
+                if (list.innerHTML) {
+                    list.style.display = 'block';
+                    btn.textContent = btn.textContent.replace('▾', '▴').replace('show', 'hide');
+                    return;
+                }
+
+                btn.textContent = 'loading replies...';
+                const replies = await fetchReplies(threadId);
+                
+                replies.forEach(r => {
+                    list.insertAdjacentHTML('beforeend', renderComment(r.snippet, true, keywords, usernameOnly, 0, null));
+                });
+
+                list.style.display = 'block';
+                btn.textContent = btn.textContent.replace('loading replies...', `hide ${replies.length} replies ▴`);
             }
 
 

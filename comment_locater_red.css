@@ -554,3 +554,34 @@ select:focus { border-color: var(--red); }
 .comment-text a:hover {
     color: var(--red);
 }
+
+.replies-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-replies {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.btn-replies:hover { color: var(--red); }
+
+.replies-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.replies-list .result-item {
+    margin-bottom: 0;
+    background: var(--bg);
+}
