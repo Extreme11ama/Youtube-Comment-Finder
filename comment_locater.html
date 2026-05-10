@@ -409,15 +409,9 @@
                 <div class="result-footer">
                     <span class="likes"><span>&#128077;</span> ${Number(likes).toLocaleString()}</span>
                     ${!isReply && replyCount > 0 ? `<span class="likes">💬 ${replyCount.toLocaleString()}</span>` : ''}
-                    
+                    ${!isReply && replyCount > 0 ? `<button class="btn-replies" onclick="toggleReplies(this, '${threadId}')">show ${replyCount} replies ▾</button>` : ''}
                 </div>
-                ${!isReply && replyCount > 0 ? `
-                <div class="replies-section" id="replies-${escHtml(snippet.authorDisplayName)}-${escHtml(date)}">
-                    <button class="btn-replies" onclick="toggleReplies(this, '${threadId}')">
-                        show ${replyCount} replies ▾
-                    </button>
-                    <div class="replies-list" style="display:none"></div>
-                </div>` : ''}
+                ${!isReply && replyCount > 0 ? `<div class="replies-list" style="display:none"></div>` : ''}
                 </div>`;
             }
 
@@ -527,7 +521,7 @@
 
             async function toggleReplies(btn, threadId) {
                 const section = btn.parentElement;
-                const list = section.querySelector('.replies-list');
+                const list = btn.closest('.result-item').querySelector('.replies-list');
                 
                 if (list.style.display !== 'none') {
                     list.style.display = 'none';
