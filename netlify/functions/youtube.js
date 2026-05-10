@@ -1,5 +1,5 @@
 exports.handler = async function(event) {
-    const API_KEY = process.env.YOUTUBE_KEY;
+    const API_KEY = event.queryStringParameters.userKey || process.env.YOUTUBE_KEY;
     const params = new URLSearchParams(event.queryStringParameters);
     params.set('key', API_KEY);
 

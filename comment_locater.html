@@ -23,7 +23,7 @@
                 <div class="api-toggle" id="api-toggle" onclick="toggleApi()">
                 <div class="api-toggle-left">
                     <div class="api-dot" id="api-dot"></div>
-                    <span class="api-label" id="api-label">youtube data api v3 key - click to configure</span>
+                    <span class="api-label" id="api-label">optional: use your own api key</span>
                 </div>
                 <span class="api-chevron" id="api-chevron">▼</span>
                 </div>
@@ -35,7 +35,7 @@
                 <p class="api-note">
                     get a free key at <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a>
                     → enable youtube data api v3 → create credentials → api key.<br>
-                    key is only stored in sessionStorage and never leaves your browser.
+                    key is stored in your browser session and never saved on our servers.
                 </p>
                 </div>
             </div>
@@ -140,7 +140,7 @@
                 label.textContent = 'youtube data api v3 key - configured ✓';
                 } else {
                 dot.classList.remove('active');
-                label.textContent = 'youtube data api v3 key - click to configure';
+                label.textContent = 'optional: use your own api key';
                 }
             }
 
@@ -155,12 +155,15 @@
                 return null;
             }
 
-            function getApiKey() {
-                return document.getElementById('api-key').value.trim();
+            function getProxyUrl(params) {
+                const userKey = document.getElementById('api-key').value.trim();
+                let url = `/.netlify/functions/youtube?${params}`;
+                if (userKey) url += `&userKey=${userKey}`;
+                return url;
             }
 
             async function fetchPage(pageToken) {
-                let url = `/.netlify/functions/youtube?endpoint=commentThreads&part=snippet,replies&videoId=${videoId}&maxResults=100`;
+                let url = getProxyUrl(`endpoint=commentThreads&part=snippet,replies&videoId=${videoId}&maxResults=100`);
                 if (pageToken) url += `&pageToken=${pageToken}`;
                 const r = await fetch(url);
                 const data = await r.json();
@@ -169,7 +172,7 @@
             }
 
             async function fetchReplies(parentId) {
-                const url = `/.netlify/functions/youtube?endpoint=comments&part=snippet&parentId=${parentId}&maxResults=100`;
+                const url = getProxyUrl(`endpoint=comments&part=snippet&parentId=${parentId}&maxResults=100`);
                 const r = await fetch(url);
                 if (!r.ok) return [];
                 const data = await r.json();
@@ -234,13 +237,6 @@
             }
 
             async function startSearch() {
-                /*const apiKey = getApiKey();
-                if (!apiKey) {
-                    if (!apiOpen) toggleApi();
-                    setStatus('<span class="err">⚠ Enter your API key above first.</span>');
-                    return;
-                }*/
-
                 const urlInput = document.getElementById('video-url').value;
                 const queryInput = document.getElementById('query').value.trim();
                 videoId = extractVideoId(urlInput);
@@ -494,7 +490,7 @@
             }
 
             async function fetchTotalCommentCount(apiKey) {
-                const url = `/.netlify/functions/youtube?endpoint=videos&part=statistics&id=${videoId}`;
+                const url = getProxyUrl(`endpoint=videos&part=statistics&id=${videoId}`);
                 const r = await fetch(url);
                 if (!r.ok) return null;
                 const data = await r.json();
