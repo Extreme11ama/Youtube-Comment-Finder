@@ -544,3 +544,13 @@ select:focus { border-color: var(--red); }
         width: 100%;
     }
 }
+
+.comment-text a {
+    color: #6ba3d6;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.comment-text a:hover {
+    color: var(--red);
+}
