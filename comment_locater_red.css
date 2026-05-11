@@ -576,6 +576,7 @@ select:focus { border-color: var(--red); }
 
 .replies-list {
     margin-top: 10px;
+    /* padding-top: 10px; for pushing replies lower*/
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -584,4 +585,28 @@ select:focus { border-color: var(--red); }
 .replies-list .result-item {
     margin-bottom: 0;
     background: var(--bg);
+}
+
+.btn-parent {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.btn-parent:hover { color: var(--red); }
+
+.parent-comment {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.parent-comment .result-item {
+    background: var(--bg);
+    margin-bottom: 0;
 }
