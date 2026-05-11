@@ -385,7 +385,7 @@
                 return rendered;
             }
 
-            function renderComment(snippet, isReply, kws, usernameOnly, replyCount, threadId) {
+            function renderComment(snippet, isReply, kws, usernameOnly, replyCount, threadId, hideParent) {
                 const author = snippet.authorDisplayName || '';
                 const text = snippet.textDisplay || snippet.textOriginal || '';
                 const likes = snippet.likeCount || 0;
@@ -408,7 +408,7 @@
                 <div class="comment-text">${highlight(text, kws)}</div>
                 <div class="result-footer">
                     <span class="likes"><span>&#128077;</span> ${Number(likes).toLocaleString()}</span>
-                    ${isReply ? `<button class="btn-parent" onclick="showParent(this, '${escHtml(snippet.parentId || '')}')">show parent ↑</button>` : ''}
+                    ${isReply && !hideParent ? `<button class="btn-parent" onclick="showParent(this, '${escHtml(snippet.parentId || '')}')">show parent ↑</button>` : ''}
                     ${!isReply && replyCount > 0 ? `<span class="likes">💬 ${replyCount.toLocaleString()}</span>` : ''}
                     ${!isReply && replyCount > 0 ? `<button class="btn-replies" onclick="toggleReplies(this, '${threadId}')">show ${replyCount} replies ▾</button>` : ''}
                 </div>
@@ -541,7 +541,7 @@
                 const replies = await fetchReplies(threadId);
                 
                 replies.forEach(r => {
-                    list.insertAdjacentHTML('beforeend', renderComment(r.snippet, true, keywords, usernameOnly, 0, null));
+                    list.insertAdjacentHTML('beforeend', renderComment(r.snippet, true, keywords, usernameOnly, 0, null, true));
                 });
 
                 list.style.display = 'block';
